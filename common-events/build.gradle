@@ -1,0 +1,10 @@
+plugins { id 'java-library' }
+
+dependencies {
+    // Import Boot BOM to align Spring/Kafka JSON versions without the old dependency-management plugin
+    api platform("org.springframework.boot:spring-boot-dependencies:3.5.7")
+
+    // APIs used by both services
+    api "org.springframework.kafka:spring-kafka"
+    api "com.fasterxml.jackson.core:jackson-databind"
+}

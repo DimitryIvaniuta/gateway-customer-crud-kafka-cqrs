@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.github.dimitryivaniuta.gateway'
+version = '0.1.0'
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+ext {
+    lombokVersion = '1.18.42'
+}
+allprojects {
+    repositories { mavenCentral() }
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    dependencies {
+        compileOnly "org.projectlombok:lombok:${lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+        testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+        testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    }
+
+    tasks.test { useJUnitPlatform() }
+}
