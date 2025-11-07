@@ -1,0 +1,69 @@
+name: gateway-customer-crud-kafka-cqrs-infra
+
+services:
+  # -------------------- Kafka (KRaft, single broker for local dev) --------------------
+  kafka:
+    image: confluentinc/cp-kafka:8.0.0.amd64
+    container_name: kafkagc
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    environment:
+      CLUSTER_ID: "wF8GJ1m1T5i7m9c0y2QkDw"
+      # KRaft single-node
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+
+      # REQUIRED once per data dir
+      KAFKA_CLUSTER_ID: "wF8GJ1m1T5i7m9c0y2QkDw"
+
+      # Listeners (simplified)
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://kafka:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${KAFKA_ADVERTISED_HOST:-localhost}:${KAFKA_PORT:-9092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # Single-broker dev tolerances
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafkagc-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [appnet]
+
+  # -------------------- PostgreSQL --------------------
+  postgres:
+    image: postgres:latest
+    container_name: postgresgc
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-appdb}
+      POSTGRES_USER: ${POSTGRES_USER:-app_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app_pass}
+    volumes:
+      - gcdata:/var/lib/postgresql/data
+      # Optional: place SQL scripts in ./docker/initdb to bootstrap schemas/users
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app_user} -d ${POSTGRES_DB:-appdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [appnet]
+
+networks:
+  appnet:
+
+volumes:
+  kafkagc-data:
+  gcdata:

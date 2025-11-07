@@ -1,0 +1,60 @@
+spring:
+  config:
+    import:
+      - "optional:file:.env[.properties]"
+
+  application:
+    name: projection-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:appdb}}
+    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:app_user}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:app_pass}}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.default_schema: ${SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA:read}
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: ${SPRING_FLYWAY_SCHEMAS:read}
+    default-schema: ${SPRING_FLYWAY_DEFAULT_SCHEMA:read}
+    locations: classpath:db/migration
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:customer-projection}
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      isolation-level: read_committed
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: ${KAFKA_JSON_TRUSTED_PACKAGES:com.github.dimitryivaniuta.*}
+        spring.json.use.type.headers: ${KAFKA_JSON_USE_TYPE_HEADERS:false}
+        spring.json.value.default.type: ${KAFKA_JSON_DEFAULT_TYPE:com.github.dimitryivaniuta.gateway.common.event.CustomerEventEnvelope}
+    listener:
+      ack-mode: MANUAL
+      concurrency: ${KAFKA_CONCURRENCY:6}
+
+server:
+  port: ${SERVER_PORT:${PROJECTION_SERVICE_PORT:8082}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+  endpoint:
+    health:
+      show-details: "never"
+
+logging:
+  level:
+    root: INFO
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
+    org.hibernate.SQL: ${LOG_SQL:false}
+    org.hibernate.orm.jdbc.bind: ${LOG_SQL_PARAMS:false}

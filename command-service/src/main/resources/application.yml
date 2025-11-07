@@ -1,0 +1,59 @@
+spring:
+  config:
+    import:
+      - "optional:file:.env[.properties]"
+
+  application:
+    name: command-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:appdb}}
+    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:app_user}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:app_pass}}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.default_schema: ${SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA:write}
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: ${SPRING_FLYWAY_SCHEMAS:write}
+    default-schema: ${SPRING_FLYWAY_DEFAULT_SCHEMA:write}
+    locations: classpath:db/migration
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    # Producer used by the Outbox publisher (exactly-once capable)
+    producer:
+      acks: all
+      retries: 10
+      enable-idempotence: true
+      transactional-id: ${KAFKA_TX_ID:customers-outbox-tx-0}
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    properties:
+      # batching (tune as needed)
+      delivery.timeout.ms: ${KAFKA_DELIVERY_TIMEOUT_MS:120000}
+      linger.ms: ${KAFKA_LINGER_MS:5}
+      batch.size: ${KAFKA_BATCH_SIZE:32768}
+
+server:
+  port: ${SERVER_PORT:${COMMAND_SERVICE_PORT:8081}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+  endpoint:
+    health:
+      show-details: "never"
+
+logging:
+  level:
+    root: INFO
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
+    org.hibernate.SQL: ${LOG_SQL:false}
+    org.hibernate.orm.jdbc.bind: ${LOG_SQL_PARAMS:false}
